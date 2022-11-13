@@ -36,9 +36,16 @@ def worker_message_generator(mock_sendall, tmp_path):
     }, cls=utils.PathJSONEncoder).encode("utf-8")
     yield None
 
-    # Wait for Manager to create directories
-    tmpdir_job0 = \
+    # Wait for Manager to create temporary directory for the first job
+    #
+    # Transfer control back to solution under test in between each check for
+    # tmpdir to simulate the Manager calling recv() when there's nothing
+    # to receive.
+    tmpdir_job0 = None
+    for tmpdir_job0 in (
         utils.wait_for_exists_glob(f"{tmp_path}/mapreduce-shared-job00000-*")
+    ):
+        yield None
 
     # Simulate files created by Worker.  The files are empty because the
     # Manager does not read the contents, just the filenames.
@@ -46,7 +53,12 @@ def worker_message_generator(mock_sendall, tmp_path):
     (tmpdir_job0/"maptask00001-part00000").touch()
 
     # Wait for Manager to send two map messages because num_mappers=2
-    utils.wait_for_map_messages(mock_sendall, num=2)
+    #
+    # Transfer control back to solution under test in between each check for
+    # map messages to simulate the Manager calling recv() when there's nothing
+    # to receive.
+    for _ in utils.wait_for_map_messages(mock_sendall, num=2):
+        yield None
 
     # Status finished message from one mapper
     yield json.dumps({
@@ -66,9 +78,9 @@ def worker_message_generator(mock_sendall, tmp_path):
     # message is from the reassignment.
     #
     # Transfer control back to solution under test in between each check for
-    # map messages. For more, see:
-    # https://github.com/eecs485staff/p4-mapreduce/issues/416
-    for _ in utils.wait_for_map_messages_async(mock_sendall, num=3):
+    # map messages to simulate the Manager calling recv() when there's nothing
+    # to receive.
+    for _ in utils.wait_for_map_messages(mock_sendall, num=3):
         yield None
 
     # Status finished messages from one mapper.  This Worker was reassigned the
@@ -82,7 +94,12 @@ def worker_message_generator(mock_sendall, tmp_path):
     yield None
 
     # Wait for Manager to send reduce job message
-    utils.wait_for_reduce_messages(mock_sendall)
+    #
+    # Transfer control back to solution under test in between each check for
+    # reduce messages to simulate the Manager calling recv() when there's
+    # nothing to receive.
+    for _ in utils.wait_for_reduce_messages(mock_sendall, num=1):
+        yield None
 
     # Reduce job status finished
     yield json.dumps({

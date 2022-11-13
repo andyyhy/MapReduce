@@ -10,8 +10,14 @@ from utils import TESTDATA_DIR
 
 def manager_message_generator(mock_sendall, tmp_path):
     """Fake Manager messages."""
-    # Worker Register
-    utils.wait_for_register_messages(mock_sendall)
+    # Worker register
+    #
+    # Transfer control back to solution under test in between each check for
+    # the register message to simulate the Worker calling recv() when there's
+    # nothing to receive.
+    for _ in utils.wait_for_register_messages(mock_sendall):
+        yield None
+
     yield json.dumps({
         "message_type": "register_ack",
         "worker_host": "localhost",
@@ -35,7 +41,12 @@ def manager_message_generator(mock_sendall, tmp_path):
     yield None
 
     # Wait for Worker to finish reduce job
-    utils.wait_for_status_finished_messages(mock_sendall)
+    #
+    # Transfer control back to solution under test in between each check for
+    # the finished message to simulate the Worker calling recv() when there's
+    # nothing to receive.
+    for _ in utils.wait_for_status_finished_messages(mock_sendall):
+        yield None
 
     # Shutdown
     yield json.dumps({

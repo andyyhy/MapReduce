@@ -10,7 +10,13 @@ from utils import TESTDATA_DIR
 def manager_message_generator(mock_sendall, tmp_path):
     """Fake Manager messages."""
     # Worker register
-    utils.wait_for_register_messages(mock_sendall)
+    #
+    # Transfer control back to solution under test in between each check for
+    # the register message to simulate the Worker calling recv() when there's
+    # nothing to receive.
+    for _ in utils.wait_for_register_messages(mock_sendall):
+        yield None
+
     yield json.dumps({
         "message_type": "register_ack",
         "worker_host": "localhost",
@@ -34,7 +40,12 @@ def manager_message_generator(mock_sendall, tmp_path):
     yield None
 
     # Wait for Worker to finish map job
-    utils.wait_for_status_finished_messages(mock_sendall)
+    #
+    # Transfer control back to solution under test in between each check for
+    # the finished message to simulate the Worker calling recv() when there's
+    # nothing to receive.
+    for _ in utils.wait_for_status_finished_messages(mock_sendall):
+        yield None
 
     # Map task 2
     yield json.dumps({
@@ -53,7 +64,12 @@ def manager_message_generator(mock_sendall, tmp_path):
 
     # Wait for Worker to finish the second map task. There should now be two
     # status=finished messages in total, One from each map task.
-    utils.wait_for_status_finished_messages(mock_sendall, num=2)
+    #
+    # Transfer control back to solution under test in between each check for
+    # the finished message to simulate the Worker calling recv() when there's
+    # nothing to receive.
+    for _ in utils.wait_for_status_finished_messages(mock_sendall, num=2):
+        yield None
 
     # Reduce task 1
     yield json.dumps({
@@ -73,7 +89,12 @@ def manager_message_generator(mock_sendall, tmp_path):
     # Wait for Worker to finish reduce task. There should now be three
     # finished messages in total: two from the map tasks and one
     # from this reduce task.
-    utils.wait_for_status_finished_messages(mock_sendall, num=3)
+    #
+    # Transfer control back to solution under test in between each check for
+    # the finished message to simulate the Worker calling recv() when there's
+    # nothing to receive.
+    for _ in utils.wait_for_status_finished_messages(mock_sendall, num=3):
+        yield None
 
     # Reduce task 2
     yield json.dumps({
@@ -91,7 +112,12 @@ def manager_message_generator(mock_sendall, tmp_path):
     yield None
 
     # Wait for Worker to finish final reduce task.
-    utils.wait_for_status_finished_messages(mock_sendall, num=4)
+    #
+    # Transfer control back to solution under test in between each check for
+    # the finished message to simulate the Worker calling recv() when there's
+    # nothing to receive.
+    for _ in utils.wait_for_status_finished_messages(mock_sendall, num=4):
+        yield None
 
     # Shutdown
     yield json.dumps({

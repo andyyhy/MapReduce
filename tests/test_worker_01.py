@@ -9,7 +9,13 @@ import utils
 def manager_message_generator(mock_sendall):
     """Fake Manager messages."""
     # First message
-    utils.wait_for_register_messages(mock_sendall)
+    #
+    # Transfer control back to solution under test in between each check for
+    # the register message to simulate the Worker calling recv() when there's
+    # nothing to receive.
+    for _ in utils.wait_for_register_messages(mock_sendall):
+        yield None
+
     yield json.dumps({
         "message_type": "register_ack",
         "worker_host": "localhost",

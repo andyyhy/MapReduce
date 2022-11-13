@@ -159,15 +159,11 @@ def wait_for_exists_glob(pattern):
                 raise Exception(f"Found >1 directory: {matches}")
             path = pathlib.Path(matches[0])
             if path.exists():
-                return path
+                yield path
+                return
+        yield None
         time.sleep(1)
     raise Exception(f"Failed to create path: {pattern}")
-
-
-def wait_for_messages(function, mock_sendall, num=1):
-    """Return when function() evaluates to True on num messages."""
-    for _ in wait_for_messages_async(function, mock_sendall, num):
-        pass
 
 
 def wait_for_call_count(mock_function, num=1):
@@ -175,11 +171,12 @@ def wait_for_call_count(mock_function, num=1):
     for _ in range(TIMEOUT):
         if mock_function.call_count == num:
             return
+        yield
         time.sleep(1)
     raise Exception(f"Failed to call {mock_function} {num} times")
 
 
-def wait_for_messages_async(function, mock_sendall, num=1):
+def wait_for_messages(function, mock_sendall, num=1):
     """Yield every 1s, return when function()==True on num messages."""
     for _ in range(TIMEOUT_LONG):
         messages = get_messages(mock_sendall)
@@ -211,19 +208,9 @@ def wait_for_map_messages(mock_sendall, num=1):
     return wait_for_messages(is_map_message, mock_sendall, num)
 
 
-def wait_for_map_messages_async(mock_sendall, num=1):
-    """Return after num map messages, yield between iterations."""
-    return wait_for_messages_async(is_map_message, mock_sendall, num)
-
-
 def wait_for_reduce_messages(mock_sendall, num=1):
     """Return after num map messages."""
     return wait_for_messages(is_reduce_message, mock_sendall, num)
-
-
-def wait_for_reduce_messages_async(mock_sendall, num=1):
-    """Return after num map messages, yield between iterations.."""
-    return wait_for_messages_async(is_reduce_message, mock_sendall, num)
 
 
 def wait_for_threads(num=1):

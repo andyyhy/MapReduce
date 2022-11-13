@@ -22,8 +22,15 @@ def worker_message_generator(tmp_path):
     }, cls=utils.PathJSONEncoder).encode("utf-8")
     yield None
 
-    # Wait for directories to be created
-    utils.wait_for_exists_glob(f"{tmp_path}/mapreduce-shared-job00000-*")
+    # Wait for Manager to create temporary directory
+    #
+    # Transfer control back to solution under test in between each check for
+    # tmpdir to simulate the Manager calling recv() when there's nothing
+    # to receive.
+    for _ in (
+        utils.wait_for_exists_glob(f"{tmp_path}/mapreduce-shared-job00000-*")
+    ):
+        yield None
 
     # Shutdown
     yield json.dumps({
